@@ -617,6 +617,10 @@ displayMessage "Configuring G729 as the only enabled codec for SIP/IAX peers cre
 $MYSQL_EXECUTE_A2BILLING "update cc_config set config_value = \"g279\" where config_key = \"sip_iax_info_allowcodec\";" >> $LOG_FILE 2>&1
 displayResult $?
 
+displayMessage "Configuring DID Dial to remove H and i parameters as they are not working properly"
+$MYSQL_EXECUTE_A2BILLING "update cc_config set config_value = \",60,L(%timeout%:61000:30000)\" where config_key = \"dialcommand_param_call_2did\";" >> $LOG_FILE 2>&1
+displayResult $?
+
 displayMessage "Configuring A2Billing run directory"
 mkdir -p /var/run/a2billing >> $LOG_FILE 2>&1
 displayResult $?
