@@ -633,7 +633,8 @@ displayMessage "Configuring cronjobs..."
 echo "
 # Automatically added for A2Billing
 0 * * * * php /usr/src/a2billing/Cronjobs/a2billing_alarm.php
-0 12 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
+# Archive call data at 3:00 AM (When load is low)
+0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
 0 10 21 * * php /usr/src/a2billing/Cronjobs/a2billing_autorefill.php
 #Batch process at 00:20 each day
 20 0 * * * php /usr/src/a2billing/Cronjobs/a2billing_batch_process.php
