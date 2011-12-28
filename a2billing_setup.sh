@@ -851,7 +851,7 @@ fi
 echo ""
 echo "Please access the A2Billing admin interface at the following URL:"
 echo
-echo "http://SERVER_IP/billing/admin"
+echo "http://$SERVER_IP/billing/admin"
 echo "User: root"
 echo "Password: changepassword"
 echo
