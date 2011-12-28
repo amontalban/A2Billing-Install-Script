@@ -4,7 +4,7 @@
 #
 #
 #	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 28-11-2011
+#	Last update - 28-12-2011
 #
 #
 #####################################################################
@@ -26,6 +26,7 @@ ASTERISK_MODULES_DIRECTORY="/usr/lib/asterisk/modules"
 ASTERISK_USER="asterisk"
 WWW_ROOT="/var/www/html"
 HOSTNAME=`hostname`
+SERVER_IP=`ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{print $1}'`
 CURRENT_DIR=$PWD
 UNWANTED_SERVICES="cups bluetooth avahi-daemon avahi-daemon dnsconfd gpm haldaemon hidd nfslock netfs iscsi iscsid autofs portmap yum-updatesd pcscd rpcgssd rpcidmapd sendmail"
 
@@ -655,60 +656,64 @@ displayMessage "Creating /var/lib/a2billing/script folder..."
 mkdir -p /var/lib/a2billing/script >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/asterisk/a2billing-daemon-callback.log logfile..."
-touch /var/log/asterisk/a2billing-daemon-callback.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing folder..."
+mkdir -p /var/log/a2billing >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/a2billing-daemon-callback.log logfile..."
-touch /var/log/a2billing-daemon-callback.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/a2billing-daemon-callback.log logfile..."
+touch /var/log/a2billing/a2billing-daemon-callback.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_alarm.log logfile..."
-touch /var/log/cront_a2b_alarm.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_alarm.log logfile..."
+touch /var/log/a2billing/cront_a2b_alarm.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_autorefill.log logfile..."
-touch /var/log/cront_a2b_autorefill.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_autorefill.log logfile..."
+touch /var/log/a2billing/cront_a2b_autorefill.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_batch_process.log logfile..."
-touch /var/log/cront_a2b_batch_process.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_batch_process.log logfile..."
+touch /var/log/a2billing/cront_a2b_batch_process.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_bill_diduse.log logfile..."
-touch /var/log/cront_a2b_bill_diduse.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_bill_diduse.log logfile..."
+touch /var/log/a2billing/cront_a2b_bill_diduse.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_subscription_fee.log logfile..."
-touch /var/log/cront_a2b_subscription_fee.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_subscription_fee.log logfile..."
+touch /var/log/a2billing/cront_a2b_subscription_fee.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_currency_update.log logfile..."
-touch /var/log/cront_a2b_currency_update.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_currency_update.log logfile..."
+touch /var/log/a2billing/cront_a2b_currency_update.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/cront_a2b_invoice.log logfile..."
-touch /var/log/cront_a2b_invoice.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/cront_a2b_invoice.log logfile..."
+touch /var/log/a2billing/cront_a2b_invoice.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/a2billing_paypal.log logfile..."
-touch /var/log/a2billing_paypal.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/a2billing_paypal.log logfile..."
+touch /var/log/a2billing/a2billing_paypal.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/a2billing_epayment.log logfile..."
-touch /var/log/a2billing_epayment.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/a2billing_epayment.log logfile..."
+touch /var/log/a2billing/a2billing_epayment.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/api_ecommerce_request.log logfile..."
-touch /var/log/api_ecommerce_request.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/api_ecommerce_request.log logfile..."
+touch /var/log/a2billing/api_ecommerce_request.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/api_callback_request.log logfile..."
-touch /var/log/api_callback_request.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/api_callback_request.log logfile..."
+touch /var/log/a2billing/api_callback_request.log >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Creating /var/log/a2billing_agi.log logfile..."
-touch /var/log/a2billing_agi.log >> $LOG_FILE 2>&1
+displayMessage "Creating /var/log/a2billing/a2billing_agi.log logfile..."
+touch /var/log/a2billing/a2billing_agi.log >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Changing owner for folder /var/log/a2billing ..."
+chown -R asterisk:asterisk /var/log/a2billing >> $LOG_FILE 2>&1
 displayResult $?
 
 echo "Disabling unneeded services..."
@@ -844,6 +849,12 @@ if [ $INSTALL_WANPIPE -eq 0 ]; then
 fi
 
 echo ""
+echo "Please access the A2Billing admin interface at the following URL:"
+echo
+echo "http://SERVER_IP/billing/admin"
+echo "User: root"
+echo "Password: changepassword"
+echo
 echo -e "\E[1;32mA2Billing was successfully installed on your system, please reboot it to check everything is working properly"
 tput sgr0
 echo ""
