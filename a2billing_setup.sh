@@ -759,7 +759,7 @@ if [ $INSTALL_WANPIPE -eq 0 ]; then
 	displayResult $?
 
 	displayMessage "Installing required packages for Sangoma drivers installation"
-	yum -y install kernel-devel libtool* gcc patch perl bison gcc-c++ ncurses-devel flex libtermcap-devel autoconf* automake*  >> $LOG_FILE 2>&1
+	yum -y install kernel-devel libtool* gcc patch bison gcc-c++ ncurses-devel flex libtermcap-devel autoconf* automake*  >> $LOG_FILE 2>&1
 	displayResult $?
 
 	displayMessage "Changing directory to /usr/src"
