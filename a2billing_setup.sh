@@ -871,7 +871,7 @@ wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Ins
 displayResult $?
 
 displayMessage "Applying A2Billing patches ..."
-patch -p1 < /usr/src/a2billing.patch >> $LOG_FILE 2>&1
+patch -p0 < /usr/src/a2billing.patch >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Tweaking Asterisk settings for performance ..."
