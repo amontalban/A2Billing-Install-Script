@@ -554,8 +554,20 @@ displayMessage "Creating default web file to hide directory listing in billing d
 touch $WWW_ROOT/billing/index.php >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Changing ownershipt of the file $WWW_ROOT/billing/index.php"
+displayMessage "Changing ownership of the file $WWW_ROOT/billing/index.php"
 chown -Rf $HTTP_USER:$HTTP_USER $WWW_ROOT/billing/index.php >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Creating log directory for archive job"
+mkdir $WWW_ROOT/billing/logs >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Creating $WWW_ROOT/billing/logs/cront_a2b_archive_data.log logfile..."
+touch $WWW_ROOT/billing/logs/cront_a2b_archive_data.log >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Changing ownership of the folder $WWW_ROOT/billing/logs"
+chown -Rf $HTTP_USER:$HTTP_USER $WWW_ROOT/billing/logs >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Adding A2Billing dialplan configuration to $ASTERISK_CONFIG_DIRECTORY/extensions.conf"
@@ -622,6 +634,10 @@ displayMessage "Configuring DID Dial to remove H and i parameters as they are no
 $MYSQL_EXECUTE_A2BILLING "update cc_config set config_value = \",60,L(%timeout%:61000:30000)\" where config_key = \"dialcommand_param_call_2did\";" >> $LOG_FILE 2>&1
 displayResult $?
 
+displayMessage "Configuring Archive Log File"
+$MYSQL_EXECUTE_A2BILLING "update cc_config set config_value = \"/var/www/html/billing/logs/cront_a2b_archive_data.log\" where config_key = \"cront_archive_data\";" >> $LOG_FILE 2>&1
+displayResult $?
+
 displayMessage "Configuring A2Billing run directory"
 mkdir -p /var/run/a2billing >> $LOG_FILE 2>&1
 displayResult $?
@@ -634,8 +650,6 @@ displayMessage "Configuring cronjobs..."
 echo "
 # Automatically added for A2Billing
 0 * * * * php /usr/src/a2billing/Cronjobs/a2billing_alarm.php
-# Archive call data at 3:00 AM (When load is low)
-0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
 0 10 21 * * php /usr/src/a2billing/Cronjobs/a2billing_autorefill.php
 #Batch process at 00:20 each day
 20 0 * * * php /usr/src/a2billing/Cronjobs/a2billing_batch_process.php
@@ -847,6 +861,73 @@ if [ $INSTALL_WANPIPE -eq 0 ]; then
 	displayResult $?
 
 fi
+
+displayMessage "Changing directory to /usr/src"
+cd /usr/src >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Downloading A2Billing patch ..."
+wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/a2billing.patch
+displayResult $?
+
+displayMessage "Applying A2Billing patches ..."
+patch -p1 < /usr/src/a2billing.patch >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Tweaking Asterisk settings for performance ..."
+displayResult 0
+
+displayMessage "Disabling Asterisk CDR to file ..."
+echo "
+
+;----- DISABLE CDR MODULES -----
+noload => cdr_csv.so
+noload => cdr_custom.so
+noload => cdr_manager.so
+" >> /etc/asterisk/modules.conf
+displayResult $?
+
+displayMessage "Configuring Logrotate for A2Billing & Asterisk ..."
+echo "
+/var/log/asterisk/*_log
+/var/log/asterisk/debug
+/var/log/asterisk/full {
+	weekly
+	minsize 50M
+	rotate 3
+	missingok
+	compress
+	delaycompress
+	notifempty
+	sharedscripts
+	postrotate
+		/usr/sbin/asterisk -rx 'logger reload' > /dev/null 2> /dev/null
+	endscript
+}
+
+/var/log/a2billing/a2billing_agi.log /var/log/a2billing/cront_a2b_* {
+	weekly
+	minsize 50M
+	rotate 3
+	missingok
+	compress
+	delaycompress
+	notifempty
+	sharedscripts
+}
+" >> /etc/logrotate.d/a2billing
+displayResult $?
+
+displayMessage "Configuring A2Billing Archiving cron job ..."
+echo "
+# Archive call data at 3:00 AM (When load is low)
+0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
+" >> /var/spool/cron/apache
+displayResult $?
+
+displayMessage "Configuring MySQL database mya2billing, changing cc_call table from MyISAM to INNODB for performance"
+$MYSQL_EXECUTE_A2BILLING "ALTER TABLE cc_call ENGINE = InnoDB;" >> $LOG_FILE 2>&1
+displayResult $?
 
 echo ""
 echo "Please access the A2Billing admin interface at the following URL:"
