@@ -316,7 +316,7 @@ netstat -nlt | grep :80 >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Downloading A2Billing script version $A2BILLING_VERSION"
-wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/A2Billing_$A2BILLING_VERSION.tar.gz -O $WORK_DIRECTORY/A2Billing_$A2BILLING_VERSION.tar.gz >> $LOG_FILE 2>&1
+wget -t 3 --no-check-certificate https://github.com/downloads/amontalban/A2Billing-Install-Script/A2Billing_$A2BILLING_VERSION.tar.gz -O $WORK_DIRECTORY/A2Billing_$A2BILLING_VERSION.tar.gz >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Extracting A2Billing script in $WORK_DIRECTORY"
