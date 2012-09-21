@@ -4945,7 +4945,7 @@ diff -urN -x lib a2billing_v1.9.4/Cronjobs/a2billing_archive_data_cront.php a2bi
 +$Query .= "buycost decimal(15,5) default '0.00000' ,  id_card_package_offer int(11) default '0' ,  real_sessiontime int(11) default NULL , ";
 +$Query .= "dnid varchar(40) collate utf8_bin NOT NULL , terminatecauseid int(1) default '1' , destination int(11) default '0' ," ;
 +$Query .= "PRIMARY KEY  (id),  KEY starttime (starttime),  KEY calledstation (calledstation),  KEY terminatecauseid ";
-+$Query .= "(terminatecauseid)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin";
++$Query .= "(terminatecauseid)) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin";
 +
 +$res = $DBHandle -> Execute($Query);
 +
