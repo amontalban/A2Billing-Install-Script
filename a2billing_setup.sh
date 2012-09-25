@@ -384,8 +384,9 @@ displayMessage "Configuring A2Billing configuration file - Step 1"
 sed -i 's/a2billing_dbuser/a2billinguser/g' $ETC_DIRECTORY/a2billing.conf >> $LOG_FILE 2>&1
 displayResult $?
 
+# Add quotes to password so it will work in a2billing.conf if the password has special symbols
 displayMessage "Configuring A2Billing configuration file - Step 2"
-sed -i "s/a2billing_dbpassword/$MYSQL_A2BILLING_PASSWORD/g" $ETC_DIRECTORY/a2billing.conf >> $LOG_FILE 2>&1
+sed -i "s/a2billing_dbpassword/\"$MYSQL_A2BILLING_PASSWORD\"/g" $ETC_DIRECTORY/a2billing.conf >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Configuring A2Billing configuration file - Step 3"
