@@ -871,6 +871,14 @@ displayMessage "Downloading A2Billing patch ..."
 wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/a2billing.patch >> $LOG_FILE 2>&1
 displayResult $?
 
+displayMessage "Changing directory to /usr/src/a2billing/common"
+cd /usr/src/a2billing/common >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Updating translation files..."
+find *locale -type d -name 'LC_MESSAGES' -exec msgfmt {}/messages.po \; >> $LOG_FILE 2>&1
+displayResult $?
+
 displayMessage "Applying A2Billing patches ..."
 patch -p0 < /usr/src/a2billing.patch >> $LOG_FILE 2>&1
 displayResult $?
