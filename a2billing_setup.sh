@@ -4,7 +4,7 @@
 #
 #
 #	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 28-12-2011
+#	Last update - 08-10-2012
 #
 #
 #####################################################################
@@ -16,7 +16,7 @@ WORK_DIRECTORY="/usr/src"
 OK_MSG="\E[1;32m[OK]"
 ERROR_MSG="\E[1;31m[ERROR]"
 LOG_FILE="/var/log/a2billing_install"
-ADDITIONAL_PACKAGES="php php-mcrypt php-gd php-mysql php mysql-server"
+ADDITIONAL_PACKAGES="php php-mcrypt php-gd php-mysql php mysql-server patch"
 HTTP_USER="apache"
 ETC_DIRECTORY="/etc"
 ASTERISK_CONFIG_DIRECTORY="/etc/asterisk"
@@ -29,6 +29,9 @@ HOSTNAME=`hostname`
 SERVER_IP=`ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{print $1}'`
 CURRENT_DIR=$PWD
 UNWANTED_SERVICES="cups bluetooth avahi-daemon avahi-daemon dnsconfd gpm haldaemon hidd nfslock netfs iscsi iscsid autofs portmap yum-updatesd pcscd rpcgssd rpcidmapd sendmail"
+DEFAULT_MYSQL_PATH="/var/lib/mysql"
+DEFAULT_MYSQL_USER="mysql"
+DEFAULT_MYSQL_GROUP="mysql"
 
 ######################################################################
 ################## DO NOT EDIT BEYOND THIS LINE ######################
@@ -154,8 +157,12 @@ displayMessage "Updating system packages"
 yum -y update >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Disabling SELinux"
+displayMessage "Disabling SELinux configuration"
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Turning SELinux off"
+setenforce 0 >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Disabling firewall - Step 1 of 2"
@@ -931,16 +938,302 @@ echo "
 " >> /etc/logrotate.d/a2billing
 displayResult $?
 
-displayMessage "Configuring A2Billing Archiving cron job ..."
-echo "
-# Archive call data at 3:00 AM (When load is low)
-0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
-" >> /var/spool/cron/apache
+yes_no "Do you want to change the A2Billing Archiving cron job execution time (Default is 03:00AM local server time)? [y/N] "
+CHANGE_CRON=$?
+
+case $CHANGE_CRON in
+	0)
+		echo ""
+	;;
+
+	1)
+		echo ""
+		echo "Not changing A2Billing Archiving cron job execution time, configuring it at 3AM."
+		echo ""
+
+		displayMessage "Configuring A2Billing Archiving cron job ..."
+		echo "
+		# Archive call data at 3:00 AM (When load is low)
+		0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
+		" >> /var/spool/cron/apache
+		displayResult $?
+	;;
+
+	2)
+		while [ $CHANGE_CRON -gt 1 ]
+		do
+			yes_no "Do you want to change the A2Billing Archiving cron job execution time (Default is 03:00AM local server time)? [y/N] "
+			CHANGE_CRON=$?
+		done
+	;;
+esac
+
+if [ $CHANGE_CRON -eq 0 ]; then
+	echo "Please provide the hour you want to execute the A2Billing Archiving cron job (Choose an hour between 00 and 23) followed by [ENTER]:"
+	CRON_HOUR_VALIDATED=false
+	while [ ${CRON_HOUR_VALIDATED} == false ]; do
+
+		CRON_HOUR=""
+		while [ -z "${CRON_HOUR}" ]; do
+			read CRON_HOUR
+			case $CRON_HOUR in
+			 	''|*[!0-9]*)
+					echo -e "\E[1;31m		The entered value is not a NUMBER!, please try again"
+					CRON_HOUR=""
+				;;
+
+				*)
+					if [ $CRON_HOUR -ge 0 ] && [ $CRON_HOUR -le 23 ]; then
+						if [ $CRON_HOUR -le 9 ]; then
+							AMPM="AM"
+						else
+							AMPM="PM"
+						fi
+
+						displayMessage "Configuring A2Billing Archiving cron job at $CRON_HOUR $AMPM ..."
+						echo "
+						# Archive call data at $CRON_HOUR:00 AM (CONFIGURED BY USER AT INSTALL)
+						0 $CRON_HOUR * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
+						" >> /var/spool/cron/apache
+						displayResult $?
+
+						CRON_HOUR_VALIDATED=true
+
+					else
+						echo -e "\E[1;31m		The entered value is not a valid hour, please remember that 24hour is 00!"
+						CRON_HOUR=""
+					fi
+
+				;;
+			esac
+		done
+
+		if ! [ $CRON_HOUR_VALIDATED ]; then
+			tput sgr0
+			echo
+			echo
+			echo
+			echo
+			echo
+			echo
+			echo "Please provide the hour you want to execute the A2Billing Archiving cron job (Choose an hour between 00 and 23) followed by [ENTER]:"
+		fi
+	done
+fi
+
+displayMessage "Detecting timezone configuration"
+TIMEZONE=`date +%Z`
+if [ $TIMEZONE == "UTC" ]; then
+	GMTOFFSET="GMT"
+else
+	OFFSET=`date +%:z`
+	GMTOFFSET="GMT${OFFSET}"
+fi
+displayResult $?
+
+displayMessage "Configuring A2Billing timezone"
+$MYSQL_EXECUTE_A2BILLING "UPDATE cc_config SET config_value=\"${GMTOFFSET}\" WHERE config_key = \"server_GMT\";" >> $LOG_FILE 2>&1
+displayResult $?
+
+$MYSQL_EXECUTE_A2BILLING "ALTER TABLE cc_call ENGINE = InnoDB;" >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Configuring MySQL database mya2billing, changing cc_call table from MyISAM to INNODB for performance"
 $MYSQL_EXECUTE_A2BILLING "ALTER TABLE cc_call ENGINE = InnoDB;" >> $LOG_FILE 2>&1
 displayResult $?
+
+displayMessage "Performance tunning MySQL..."
+SYSTEM_MEMORY=`free -m | grep -i mem | awk '{print $2}'`
+let INNODB_MEMORY=(SYSTEM_MEMORY*2)/3
+
+sed -i '/symbolic\-links\=0/a\
+\
+# Tweaking for A2Billing Performance\
+skip-bdb\
+query_cache_limit=10M\
+query_cache_size=100M\
+thread_cache=120\
+thread_cache_size=120\
+max_connections=500\
+table_cache=8192\
+innodb_buffer_pool_size='${INNODB_MEMORY}'MB\
+key_buffer_size=256M\
+' /etc/my.cnf >> $LOG_FILE 2>&1
+displayResult $?
+
+yes_no "Do you want to move MySQL databases to another drive/path? [y/N] "
+MOVE_MYSQL=$?
+
+case $MOVE_MYSQL in
+	0)
+		echo ""
+	;;
+
+	1)
+		echo ""
+		echo "Not moving MySQL databases."
+		echo ""
+	;;
+
+	2)
+		while [ $MOVE_MYSQL -gt 1 ]
+		do
+			yes_no "Do you want to move MySQL databases to another drive/path? [y/N] "
+			MOVE_MYSQL=$?
+		done
+	;;
+esac
+
+if [ $MOVE_MYSQL -eq 0 ]; then
+	echo "Please provide the FULL path (i.e /data/mysql ) where you want MySQL databases to be installed, followed by [ENTER]:"
+	MYSQL_PATH_VALIDATED=false
+	DO_MYSQL_MOVE=false
+	while [ ${MYSQL_PATH_VALIDATED} == false ]; do
+
+		MYSQL_DATA_PATH=""
+		while [ -z "${MYSQL_DATA_PATH}" ]; do
+			read MYSQL_DATA_PATH
+			MYSQL_SURE=99
+			if [ -d "${MYSQL_DATA_PATH}" ]; then
+				yes_no "The entered directory exists, are you sure you want to use this path? [y/N]:"
+				MYSQL_SURE=$?
+
+				case $MYSQL_SURE in
+					0)
+						echo ""
+					;;
+
+					1)
+						MYSQL_DATA_PATH=""
+						echo "Please provide the FULL path (i.e /data/mysql ) where you want MySQL databases to be installed, followed by [ENTER]:"
+					;;
+
+					2)
+						while [ $MYSQL_SURE -gt 1 ]
+						do
+							yes_no "The entered directory exists, are you sure you want to use this path? [y/N]:"
+							MYSQL_SURE=$?
+						done
+						echo "Please provide the FULL path (i.e /data/mysql ) where you want MySQL databases to be installed, followed by [ENTER]:"
+					;;
+				esac
+			else
+				DIRNAME=`dirname $MYSQL_DATA_PATH`
+				GREP_DIRNAME=`echo $MYSQL_DATA_PATH | grep ^\/`
+				if [ -z "$GREP_DIRNAME" -o "$DIRNAME" == "." ]; then
+					MYSQL_DATA_PATH=""
+					echo
+					echo
+					echo
+					echo -e "\E[1;31m		The provided path for MySQL is not valid!"
+					tput sgr0
+					echo
+					echo
+					echo
+					echo "Please provide the FULL path (i.e /data/mysql ) where you want MySQL databases to be installed, followed by [ENTER]:"
+				fi
+			fi
+		done
+
+		if [ -d "${MYSQL_DATA_PATH}" ]; then
+			MYSQL_PATH_VALIDATED=true
+			DO_MYSQL_MOVE=true
+		else
+			if [ $MYSQL_SURE -eq 0 ]; then
+				MYSQL_PATH_VALIDATED=true
+				DO_MYSQL_MOVE=true
+			else
+				mkdir -p ${MYSQL_DATA_PATH}
+				MKDIR_RESULT=$?
+				if [ $MKDIR_RESULT -eq 0 ]; then
+					MYSQL_PATH_VALIDATED=true
+					DO_MYSQL_MOVE=true
+				else
+					echo
+					echo -e "\E[1;31m		Failed to create specified directory!!!"
+					tput sgr0
+				fi
+			fi
+		fi
+
+		if [ $DO_MYSQL_MOVE ]; then
+
+			displayMessage "Stopping MySQL service"
+			service mysqld stop >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Waiting for MySQL service to stop"
+			while [ `pidof mysqld` ]; do
+				sleep 1
+			done
+			displayResult 0
+
+			displayMessage "Copying files to ${MYSQL_DATA_PATH}"
+			cp -vR $DEFAULT_MYSQL_PATH/* $MYSQL_DATA_PATH >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Changing ownership of directoy ${MYSQL_DATA_PATH}"
+			chown -vR $DEFAULT_MYSQL_USER:$DEFAULT_MYSQL_GROUP $MYSQL_DATA_PATH/ >> $LOG_FILE 2>&1
+			displayResult $?
+				
+			displayMessage "Renaming directoy ${DEFAULT_MYSQL_PATH} to ${DEFAULT_MYSQL_PATH}_old"
+			mv -v $DEFAULT_MYSQL_PATH/ ${DEFAULT_MYSQL_PATH}_old >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Linking ${DEFAULT_MYSQL_PATH} to ${MYSQL_DATA_PATH}"
+			ln -s ${MYSQL_DATA_PATH} ${DEFAULT_MYSQL_PATH} >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Changing ownership of simbolic link ${DEFAULT_MYSQL_PATH}"
+			chown -vR $DEFAULT_MYSQL_USER:$DEFAULT_MYSQL_GROUP $DEFAULT_MYSQL_PATH >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Escaping new MySQL data path to change config"
+			ESCAPED_MYSQL_DATA_PATH=$(echo ${MYSQL_DATA_PATH} | sed -e 's/\//\\\//g' -e 's/\&/\\\&/g') >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Escaping MySQL default data path to change config"
+			ESCAPED_DEFAULT_MYSQL_PATH=$(echo ${DEFAULT_MYSQL_PATH} | sed -e 's/\//\\\//g' -e 's/\&/\\\&/g') >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Configuring MySQL service to use new path (${MYSQL_DATA_PATH}) - Step 1 of 2"
+			sed -i "s/datadir=$ESCAPED_DEFAULT_MYSQL_PATH/datadir=$ESCAPED_MYSQL_DATA_PATH/g" /etc/my.cnf >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Configuring MySQL service to use new path (${MYSQL_DATA_PATH}) - Step 2 of 2"
+			sed -i "s/socket=$ESCAPED_DEFAULT_MYSQL_PATH/socket=$ESCAPED_MYSQL_DATA_PATH/g" /etc/my.cnf >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Staring MySQL service"
+			service mysqld start >> $LOG_FILE 2>&1
+			displayResult $?
+
+			displayMessage "Waiting for MySQL service to start"
+			while ! [ `pidof mysqld` ]; do
+				sleep 1
+			done
+			displayResult 0
+
+			displayMessage "Checking if MySQL service started"
+			netstat -nlt | grep :3306 >> $LOG_FILE 2>&1
+			displayResult $?
+
+		fi
+
+		if ! [ $MYSQL_PATH_VALIDATED ]; then
+			echo
+			echo
+			echo
+			echo -e "\E[1;31m		The provided path for MySQL is not valid!"
+			tput sgr0
+			echo
+			echo
+			echo
+			echo "Please provide the FULL path (i.e /data/mysql ) where you want MySQL databases to be installed, followed by [ENTER]:"
+		fi
+
+	done
+fi
 
 echo ""
 echo "Please access the A2Billing admin interface at the following URL:"
