@@ -1244,6 +1244,10 @@ if [ $MOVE_MYSQL -eq 0 ]; then
 	done
 fi
 
+displayMessage "Refreshing system libraries"
+ldconfig -vvv >> $LOG_FILE 2>&1
+displayResult $?
+
 echo ""
 echo "Please access the A2Billing admin interface at the following URL:"
 echo
