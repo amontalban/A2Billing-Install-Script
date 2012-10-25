@@ -16,7 +16,7 @@ WORK_DIRECTORY="/usr/src"
 OK_MSG="\E[1;32m[OK]"
 ERROR_MSG="\E[1;31m[ERROR]"
 LOG_FILE="/var/log/a2billing_install"
-ADDITIONAL_PACKAGES="php php-mcrypt php-gd php-mysql php mysql-server patch"
+ADDITIONAL_PACKAGES="php php-mcrypt php-gd php-mysql php mysql-server patch dos2unix gettext"
 HTTP_USER="apache"
 ETC_DIRECTORY="/etc"
 ASTERISK_CONFIG_DIRECTORY="/etc/asterisk"
@@ -161,9 +161,18 @@ displayMessage "Disabling SELinux configuration"
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Turning SELinux off"
-setenforce 0 >> $LOG_FILE 2>&1
+displayMessage "Checking SELinux status"
+SELINUX=`getenforce`>> $LOG_FILE 2>&1
 displayResult $?
+
+if ! [ "${SELINUX}" == "Disabled" ]; then
+	displayMessage "Turning SELinux off"
+	setenforce 0 >> $LOG_FILE 2>&1
+	displayResult $?
+else
+	displayMessage "SELinux is disabled"
+	displayResult 0
+fi
 
 displayMessage "Disabling firewall - Step 1 of 2"
 chkconfig --level 2345 iptables off >> $LOG_FILE 2>&1
