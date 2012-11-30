@@ -439,7 +439,7 @@ displayResult $?
 
 # We disable the kmod-dahdi-linux 2.6.18-308.20.1
 displayMessage "Disabling kmod-dahdi-linux 2.6.18-308.20.1 in yum as a workaround"
-sed -i '/\[updates\]/a exclude=kmod-dahdi-linux-2.6.1-1_centos5.2.6.18_308.20.1.el5' /etc/yum.repos.d/centos-asterisk.repo
+sed -i '/\[asterisk-current\]/a exclude=kmod-dahdi-linux-2.6.1-1_centos5.2.6.18_308.20.1.el5' /etc/yum.repos.d/centos-asterisk.repo
 displayResult $?
 
 displayMessage "Installing Asterisk"
