@@ -4,7 +4,7 @@
 #
 #
 #	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 08-10-2012
+#	Last update - 30-11-2012
 #
 #
 #####################################################################
@@ -140,7 +140,12 @@ displayResult $?
 
 # We disable the use of PHP 5.3
 displayMessage "Disabling PHP 5.3 in yum"
-sed -i '/\[base\]/a exclude=php53*' /etc/yum.repos.d/CentOS-Base.repo
+sed -i '/\[base\]/a exclude=php53* kernel-2.6.18-308.20.1-5.x86_64' /etc/yum.repos.d/CentOS-Base.repo
+displayResult $?
+
+# We disable the Kernel 2.6.18-308.20.1
+displayMessage "Disabling Kernel 2.6.18-308.20.1 in yum as Digium don't have packages for this version"
+sed -i '/\[updates\]/a exclude=kernel-2.6.18-308.20.1.el5' /etc/yum.repos.d/CentOS-Base.repo
 displayResult $?
 
 # We import RPMForge GPG keys
