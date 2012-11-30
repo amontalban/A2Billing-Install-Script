@@ -140,7 +140,7 @@ displayResult $?
 
 # We disable the use of PHP 5.3
 displayMessage "Disabling PHP 5.3 in yum"
-sed -i '/\[base\]/a exclude=php53* kernel-2.6.18-308.20.1-5.x86_64' /etc/yum.repos.d/CentOS-Base.repo
+sed -i '/\[base\]/a exclude=php53*' /etc/yum.repos.d/CentOS-Base.repo
 displayResult $?
 
 # We disable the Kernel 2.6.18-308.20.1
@@ -435,6 +435,11 @@ displayResult $?
 
 displayMessage "Deleting downloaded files"
 rm -f asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
+displayResult $?
+
+# We disable the kmod-dahdi-linux 2.6.18-308.20.1
+displayMessage "Disabling kmod-dahdi-linux 2.6.18-308.20.1 in yum as a workaround"
+sed -i '/\[updates\]/a exclude=kmod-dahdi-linux-2.6.1-1_centos5.2.6.18_308.20.1.el5' /etc/yum.repos.d/centos-asterisk.repo
 displayResult $?
 
 displayMessage "Installing Asterisk"
