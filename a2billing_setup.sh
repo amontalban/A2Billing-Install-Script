@@ -1054,9 +1054,6 @@ displayMessage "Configuring A2Billing timezone"
 $MYSQL_EXECUTE_A2BILLING "UPDATE cc_config SET config_value=\"${GMTOFFSET}\" WHERE config_key = \"server_GMT\";" >> $LOG_FILE 2>&1
 displayResult $?
 
-$MYSQL_EXECUTE_A2BILLING "ALTER TABLE cc_call ENGINE = InnoDB;" >> $LOG_FILE 2>&1
-displayResult $?
-
 displayMessage "Configuring MySQL database mya2billing, changing cc_call table from MyISAM to INNODB for performance"
 $MYSQL_EXECUTE_A2BILLING "ALTER TABLE cc_call ENGINE = InnoDB;" >> $LOG_FILE 2>&1
 displayResult $?
