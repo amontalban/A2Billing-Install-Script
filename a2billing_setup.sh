@@ -594,7 +594,15 @@ touch $WWW_ROOT/billing/logs/cront_a2b_archive_data.log >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Changing ownership of the folder $WWW_ROOT/billing/logs"
-chown -Rf $HTTP_USER:$HTTP_USER $WWW_ROOT/billing/logs >> $LOG_FILE 2>&1
+chown -Rf $ASTERISK_USER:$ASTERISK_USER $WWW_ROOT/billing/logs >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Creating customers CDRs directory for archive job"
+mkdir $WWW_ROOT/billing/customer_cdr >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Changing ownership of the folder $WWW_ROOT/billing/logs"
+chown -Rf $ASTERISK_USER:$ASTERISK_USER $WWW_ROOT/billing/customer_cdr >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Adding A2Billing dialplan configuration to $ASTERISK_CONFIG_DIRECTORY/extensions.conf"
@@ -1039,6 +1047,14 @@ if [ $CHANGE_CRON -eq 0 ]; then
 		fi
 	done
 fi
+
+displayMessage "Creating PID file (/var/www/html/billing/a2billing_archive_data_cront_pid.php) for cron jobs"
+touch /var/www/html/billing/a2billing_archive_data_cront_pid.php >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Changing ownership for file (/var/www/html/billing/a2billing_archive_data_cront_pid.php) to ${ASTERISK_USER} user"
+chown $ASTERISK_USER:$ASTERISK_USER /var/www/html/billing/a2billing_archive_data_cront_pid.php >> $LOG_FILE 2>&1
+displayResult $?
 
 displayMessage "Detecting timezone configuration"
 TIMEZONE=`date +%Z`
