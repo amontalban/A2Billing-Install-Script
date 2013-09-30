@@ -143,9 +143,36 @@ displayMessage "Disabling PHP 5.3 in yum"
 sed -i '/\[base\]/a exclude=php53*' /etc/yum.repos.d/CentOS-Base.repo
 displayResult $?
 
-# We disable the Kernel, headers and development package 2.6.18-348.16.1
-displayMessage "Disabling Kernel 2.6.18-348.16.1 in yum as Digium don't have packages for this version"
-sed -i '/\[updates\]/a exclude=kernel-2.6.18-348.16.1.el5 kernel-devel-2.6.18-348.16.1.el5 kernel-headers-2.6.18-348.16.1.el5' /etc/yum.repos.d/CentOS-Base.repo
+# We disable the Kernel updates
+displayMessage "Disabling Kernel updates for yum as Digium have old kernel dependencies"
+sed -i '/\[updates\]/a exclude=kernel*' /etc/yum.repos.d/CentOS-Base.repo
+displayResult $?
+
+echo "Configuring Asterisk & Digium Repositories..."
+echo "Detecting system arquitecture..."
+
+ARCH=`uname -i`
+displayMessage "System arquitecture detected: $ARCH"
+displayResult $?
+
+displayMessage "Downloading Asterisk & Digium Repositories"
+wget http://packages.asterisk.org/centos/5/current/$ARCH/RPMS/asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Installing Asterisk & Digium Repositories"
+yum --nogpgcheck -y localinstall asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Deleting downloaded files"
+rm -f asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Detecting kernel version supported by Digium"
+DIGIUM_KERNEL_VERSION=`yum list kmod-dahdi-linux | grep -i kmod-dahdi-linux | awk -Fcentos5. '{print $2}' | awk '{print $1}' | sed 's/_/-/g'`
+displayResult $?
+
+displayMessage "Installing kernel version: $DIGIUM_KERNEL_VERSION"
+yum -y install kernel-${DIGIUM_KERNEL_VERSION} >> $LOG_FILE 2>&1
 displayResult $?
 
 # We import RPMForge GPG keys
@@ -416,30 +443,6 @@ displayResult $?
 
 displayMessage "Configuring A2Billing configuration file - Step 4"
 sed -i 's/port =/port = 3306/g' $ETC_DIRECTORY/a2billing.conf >> $LOG_FILE 2>&1
-displayResult $?
-
-echo "Configuring Asterisk & Digium Repositories..."
-echo "Detecting system arquitecture..."
-
-ARCH=`uname -i`
-displayMessage "System arquitecture detected: $ARCH"
-displayResult $?
-
-displayMessage "Downloading Asterisk & Digium Repositories"
-wget http://packages.asterisk.org/centos/5/current/$ARCH/RPMS/asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
-displayResult $?
-
-displayMessage "Installing Asterisk & Digium Repositories"
-yum --nogpgcheck -y localinstall asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
-displayResult $?
-
-displayMessage "Deleting downloaded files"
-rm -f asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
-displayResult $?
-
-# We disable the kmod-dahdi-linux 2.6.18-308.20.1
-displayMessage "Disabling kmod-dahdi-linux 2.6.18-308.20.1 in yum as a workaround"
-sed -i '/\[asterisk-current\]/a exclude=kmod-dahdi-linux-2.6.1-1_centos5.2.6.18_308.20.1.el5' /etc/yum.repos.d/centos-asterisk.repo
 displayResult $?
 
 displayMessage "Installing Asterisk"
