@@ -4,7 +4,7 @@
 #
 #
 #	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 30-09-2013
+#	Last update - 01-10-2013
 #
 #
 #####################################################################
@@ -840,6 +840,31 @@ if [ $INSTALL_WANPIPE -eq 0 ]; then
 	make KVERS=$KERNEL_VERSION >> $LOG_FILE 2>&1
 	displayResult $?
 
+	echo "Detecting system architecture..."
+	ARCH=`uname -m`
+	displayMessage "System architecture: $ARCH"
+	displayResult 0
+
+	# We detect if the server is running 64bit OS and has 4Gb or more
+	CUSTOM_OPTIONS=""
+	if [ $ARCH == "x86_64" ]; then
+		echo "Detecting system memory amount..."
+		SYSTEM_MEMORY=`free -m | grep -i mem | awk '{print $2}'`
+		displayMessage "System memory: $SYSTEM_MEMORY Mb"
+		displayResult 0
+		if [ $SYSTEM_MEMORY -gt 4000 ]; then
+			CUSTOM_OPTIONS="--64bit_4GB"
+		fi
+	fi
+
+	displayMessage "Changing directory to /usr/src/kernels/${KERNEL_VERSION}-${ARCH}..."
+	cd /usr/src/kernels/${KERNEL_VERSION}-${ARCH} >> $LOG_FILE 2>&1
+	displayResult $?
+
+	displayMessage "Preparing Kernel directory for Wanpipe driver installation..."
+	make oldconfig && make prepare >> $LOG_FILE 2>&1
+	displayResult $?
+
 	displayMessage "Changing directory to /usr/src"
 	cd /usr/src >> $LOG_FILE 2>&1
 	displayResult $?
@@ -864,23 +889,6 @@ if [ $INSTALL_WANPIPE -eq 0 ]; then
 	displayMessage "Changing directory to /usr/src/$WANPIPE_VERSION"
 	cd ${WANPIPE_VERSION} >> $LOG_FILE 2>&1
 	displayResult $?
-
-	echo "Detecting system architecture..."
-	ARCH=`uname -m`
-	displayMessage "System architecture: $ARCH"
-	displayResult 0
-
-	# We detect if the server is running 64bit OS and has 4Gb or more
-	CUSTOM_OPTIONS=""
-	if [ $ARCH == "x86_64" ]; then
-		echo "Detecting system memory amount..."
-		SYSTEM_MEMORY=`free -m | grep -i mem | awk '{print $2}'`
-		displayMessage "System memory: $SYSTEM_MEMORY Mb"
-		displayResult 0
-		if [ $SYSTEM_MEMORY -gt 4000 ]; then
-			CUSTOM_OPTIONS="--64bit_4GB"
-		fi
-	fi
 
 	displayMessage "Building RPMs for Sangoma Wanpipe drivers"
 	./Setup buildrpm --silent --split_rpms --protocol=TDM --with-linux=/usr/src/kernels/${KERNEL_VERSION}-${ARCH} --zaptel-path=/usr/src/dahdi-linux-${DAHDI_VERSION} ${CUSTOM_OPTIONS} >> $LOG_FILE 2>&1
