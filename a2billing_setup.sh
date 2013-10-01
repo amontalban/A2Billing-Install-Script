@@ -4,7 +4,7 @@
 #
 #
 #	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 30-11-2012
+#	Last update - 30-09-2013
 #
 #
 #####################################################################
@@ -143,11 +143,6 @@ displayMessage "Disabling PHP 5.3 in yum"
 sed -i '/\[base\]/a exclude=php53*' /etc/yum.repos.d/CentOS-Base.repo
 displayResult $?
 
-# We disable the Kernel updates
-displayMessage "Disabling Kernel updates for yum as Digium have old kernel dependencies"
-sed -i '/\[updates\]/a exclude=kernel*' /etc/yum.repos.d/CentOS-Base.repo
-displayResult $?
-
 echo "Configuring Asterisk & Digium Repositories..."
 echo "Detecting system arquitecture..."
 
@@ -172,7 +167,7 @@ DIGIUM_KERNEL_VERSION=`yum list kmod-dahdi-linux | grep -i kmod-dahdi-linux | aw
 displayResult $?
 
 displayMessage "Installing kernel version: $DIGIUM_KERNEL_VERSION"
-yum -y install kernel-${DIGIUM_KERNEL_VERSION} >> $LOG_FILE 2>&1
+yum -y install kernel-${DIGIUM_KERNEL_VERSION} kernel-devel-${DIGIUM_KERNEL_VERSION} kernel-headers-${DIGIUM_KERNEL_VERSION} >> $LOG_FILE 2>&1
 displayResult $?
 
 # We import RPMForge GPG keys
@@ -185,8 +180,9 @@ displayMessage "Importing CentOS 5 GPG Keys"
 rpm --import http://ftp.osuosl.org/pub/centos/RPM-GPG-KEY-CentOS-5 >> $LOG_FILE 2>&1
 displayResult $?
 
+# We disable the Kernel updates
 displayMessage "Updating system packages"
-yum -y update >> $LOG_FILE 2>&1
+yum -x kernel* -y update >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Disabling SELinux configuration"
@@ -982,10 +978,9 @@ case $CHANGE_CRON in
 		echo ""
 
 		displayMessage "Configuring A2Billing Archiving cron job ..."
-		echo "
-		# Archive call data at 3:00 AM (When load is low)
-		0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
-		" >> /var/spool/cron/apache
+echo "# Archive call data at 3:00 AM (When load is low)
+0 3 * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
+" >> /var/spool/cron/apache
 		displayResult $?
 	;;
 
@@ -1021,12 +1016,9 @@ if [ $CHANGE_CRON -eq 0 ]; then
 						fi
 
 						displayMessage "Configuring A2Billing Archiving cron job at $CRON_HOUR $AMPM ..."
-						echo "
-						# Archive call data at $CRON_HOUR:00 AM (CONFIGURED BY USER AT INSTALL)
-						0 $CRON_HOUR * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php
-						" >> /var/spool/cron/apache
+echo "# Archive call data at $CRON_HOUR:00 AM (CONFIGURED BY USER AT INSTALL)
+0 $CRON_HOUR * * * php /usr/src/a2billing/Cronjobs/a2billing_archive_data_cront.php" >> /var/spool/cron/apache
 						displayResult $?
-
 						CRON_HOUR_VALIDATED=true
 
 					else
