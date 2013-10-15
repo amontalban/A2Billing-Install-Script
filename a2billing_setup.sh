@@ -4,7 +4,7 @@
 #
 #
 #	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 01-10-2013
+#	Last update - 15-10-2013
 #
 #
 #####################################################################
@@ -12,6 +12,7 @@
 ####################### CONFIGURATION VALUES #########################
 
 A2BILLING_VERSION="v1.9.4"
+LIBOPENR2_VERSION="1.3.2-1"
 WORK_DIRECTORY="/usr/src"
 OK_MSG="\E[1;32m[OK]"
 ERROR_MSG="\E[1;31m[ERROR]"
@@ -360,7 +361,7 @@ netstat -nlt | grep :80 >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Downloading A2Billing script version $A2BILLING_VERSION"
-wget -t 3 --no-check-certificate https://github.com/downloads/amontalban/A2Billing-Install-Script/A2Billing_$A2BILLING_VERSION.tar.gz -O $WORK_DIRECTORY/A2Billing_$A2BILLING_VERSION.tar.gz >> $LOG_FILE 2>&1
+wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/A2Billing_$A2BILLING_VERSION.tar.gz -O $WORK_DIRECTORY/A2Billing_$A2BILLING_VERSION.tar.gz >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Extracting A2Billing script in $WORK_DIRECTORY"
@@ -439,6 +440,42 @@ displayResult $?
 
 displayMessage "Configuring A2Billing configuration file - Step 4"
 sed -i 's/port =/port = 3306/g' $ETC_DIRECTORY/a2billing.conf >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Changing directory to $WORK_DIRECTORY"
+cd $WORK_DIRECTORY >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Downloading OpenR2 Library version $LIBOPENR2_VERSION"
+wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/libopenr2-$LIBOPENR2_VERSION.$ARCH.rpm >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Installing OpenR2 Library version $LIBOPENR2_VERSION"
+rpm -Uvh libopenr2-$LIBOPENR2_VERSION.$ARCH.rpm >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Detecting system library path"
+if [ $ARCH == "x86_64" ]; then
+	LIBPATH="/usr/lib64"
+else
+	LIBPATH="/usr/lib"
+fi
+displayMessage "Library path is: $LIBPATH"
+
+displayMessage "Changing directory to $LIBPATH"
+cd $LIBPATH >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Creating symbolic link to be backward compatible with the version of chan_dahdi installed by Asterisk"
+ln -s libopenr2.so.3.1.1 libopenr2.so.1 >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Refreshing system libraries"
+ldconfig -vvv >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Changing directory to $WORK_DIRECTORY"
+cd $WORK_DIRECTORY >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Installing Asterisk"
