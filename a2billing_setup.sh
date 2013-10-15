@@ -361,7 +361,7 @@ netstat -nlt | grep :80 >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Downloading A2Billing script version $A2BILLING_VERSION"
-wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/A2Billing_$A2BILLING_VERSION.tar.gz -O $WORK_DIRECTORY/A2Billing_$A2BILLING_VERSION.tar.gz >> $LOG_FILE 2>&1
+wget -t 3 http://andresmontalban.com/a2billing/A2Billing_$A2BILLING_VERSION.tar.gz -O $WORK_DIRECTORY/A2Billing_$A2BILLING_VERSION.tar.gz >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Extracting A2Billing script in $WORK_DIRECTORY"
@@ -447,7 +447,7 @@ cd $WORK_DIRECTORY >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Downloading OpenR2 Library version $LIBOPENR2_VERSION"
-wget -t 3 --no-check-certificate https://raw.github.com/amontalban/A2Billing-Install-Script/master/libopenr2-$LIBOPENR2_VERSION.$ARCH.rpm >> $LOG_FILE 2>&1
+wget -t 3 http://andresmontalban.com/a2billing/libopenr2-$LIBOPENR2_VERSION.$ARCH.rpm >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Installing OpenR2 Library version $LIBOPENR2_VERSION"
