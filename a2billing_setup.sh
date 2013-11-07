@@ -3,8 +3,8 @@
 #####################################################################
 #
 #
-#	Created by Andres Montalban - amontalban <AT> amtechhelp.com
-#	Last update - 15-10-2013
+#	Created by Andres Montalban - amontalban <AT> globalitss.com
+#	Last update - 07-11-2013
 #
 #
 #####################################################################
