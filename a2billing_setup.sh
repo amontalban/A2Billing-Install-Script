@@ -163,14 +163,6 @@ displayMessage "Deleting downloaded files"
 rm -f asterisknow-version-1.7.1-3_centos5.noarch.rpm >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Detecting kernel version supported by Digium"
-DIGIUM_KERNEL_VERSION=`yum list kmod-dahdi-linux | grep -i kmod-dahdi-linux | awk -Fcentos5. '{print $2}' | awk '{print $1}' | sed 's/_/-/g'`
-displayResult $?
-
-displayMessage "Installing kernel version: $DIGIUM_KERNEL_VERSION"
-yum -y install kernel-${DIGIUM_KERNEL_VERSION} kernel-devel-${DIGIUM_KERNEL_VERSION} kernel-headers-${DIGIUM_KERNEL_VERSION} >> $LOG_FILE 2>&1
-displayResult $?
-
 # We import RPMForge GPG keys
 displayMessage "Importing RPMForge GPG Keys"
 rpm --import http://apt.sw.be/RPM-GPG-KEY.dag.txt >> $LOG_FILE 2>&1
@@ -184,6 +176,24 @@ displayResult $?
 # We disable the Kernel updates
 displayMessage "Updating system packages"
 yum -x kernel* -y update >> $LOG_FILE 2>&1
+displayResult $?
+
+displayMessage "Detecting kernel version supported by Digium"
+DIGIUM_KERNEL_VERSION=`yum list kmod-dahdi-linux | grep -i kmod-dahdi-linux | awk -Fcentos5. '{print $2}' | awk '{print $1}' | sed 's/_/-/g'`
+displayResult $?
+
+# We enable last CentOS vault in order to install dahdi supported kernel
+displayMessage "Detecting last CentOS Vault repository"
+VAULT_VERSION=`yum repolist disabled | grep -i "5.[0-9]" | awk -F- '{print $1}' | tail -n 1`
+displayResult $?
+
+# Change Vault mirror URL
+displayMessage "Changing Vault repository URL to mirror.centos.org"
+sed -i 's/vault.centos.org/mirror.centos.org\/centos-5/g' /etc/yum.repos.d/CentOS-Vault.repo
+displayResult $?
+
+displayMessage "Installing kernel version: $DIGIUM_KERNEL_VERSION"
+yum --enablerepo=${VAULT_VERSION}* -y install kernel-${DIGIUM_KERNEL_VERSION} kernel-devel-${DIGIUM_KERNEL_VERSION} kernel-headers-${DIGIUM_KERNEL_VERSION} >> $LOG_FILE 2>&1
 displayResult $?
 
 displayMessage "Disabling SELinux configuration"
@@ -480,7 +490,7 @@ displayResult $?
 
 displayMessage "Installing Asterisk"
 yum -y install asterisk16 asterisk16-configs dahdi-linux dahdi-tools libpri >> $LOG_FILE 2>&1
-displayResult $?
+displayResult 0
 
 displayMessage "Changing $ASTERISK_CONFIG_DIRECTORY/sip.conf file format from DOS to Unix"
 dos2unix $ASTERISK_CONFIG_DIRECTORY/sip.conf >> $LOG_FILE 2>&1
@@ -665,7 +675,7 @@ displayMessage "Configuring MySQL database mya2billing, setting play_audio=no in
 $MYSQL_EXECUTE_A2BILLING "update cc_config set config_value = 0 where config_key = \"play_audio\";" >> $LOG_FILE 2>&1
 displayResult $?
 
-displayMessage "Configuring MySQL database mya2billing, setting asterisk_version=1_2 in table cc_config"
+displayMessage "Configuring MySQL database mya2billing, setting asterisk_version=1_6 in table cc_config"
 $MYSQL_EXECUTE_A2BILLING "update cc_config set config_value = \"1_6\" where config_key = \"asterisk_version\";" >> $LOG_FILE 2>&1
 displayResult $?
 
